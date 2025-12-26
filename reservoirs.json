@@ -1,0 +1,6 @@
+[
+    { "name": "Three Gorges Dam", "lat": 30.823, "lon": 111.003 },
+    { "name": "Hoover Dam", "lat": 36.015, "lon": -114.737 },
+    { "name": "Itaipu Dam", "lat": -25.407, "lon": -54.588 },
+    { "name": "Aswan High Dam", "lat": 23.968, "lon": 32.877 }
+]
