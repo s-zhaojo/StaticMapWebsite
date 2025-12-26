@@ -165,25 +165,26 @@ input[type=number] {
 
 <div id="sidebar">
 
-<h3>Search Reservoir / Major River Basin (I4)</h3>
+<h3 class="required">Search Reservoir / Major River Basin (I4)</h3>
 <input id="search" type="text" placeholder="Search reservoir or basin..." required>
 <div id="results"></div>
 
 <h3>Observation Period</h3>
 <div class="slider-container">
-    <label>Start Year (I1, year)</label>
+    <label class="required">Start Year (I1, year)</label>
     <input type="range" id="start-year-slider" min="1900" max="2025" value="2000">
     <input type="number" id="start-year-input" min="1900" max="2025" value="2000">
 </div>
+
 <div class="slider-container">
-    <label>End Year (I2, year)</label>
+    <label class="required">End Year (I2, year)</label>
     <input type="range" id="end-year-slider" min="1900" max="2025" value="2020">
     <input type="number" id="end-year-input" min="1900" max="2025" value="2020">
 </div>
 
 <h3>Build Year</h3>
 <div class="slider-container">
-    <label>Build Year (I3, year)</label>
+    <label class="required">Build Year (I3, year)</label>
     <input type="range" id="build-year-slider" min="1900" max="2025" value="2010">
     <input type="number" id="build-year-input" min="1900" max="2025" value="2010">
 </div>
@@ -292,7 +293,7 @@ searchInput.addEventListener("input", () => {
         d.textContent = r.name;
         d.onclick = () => {
             selectedReservoir = r;
-            searchInput.value = r.name;        // fill search bar
+            searchInput.value = r.name;
             document.getElementById("lat").value = r.lat;
             document.getElementById("lon").value = r.lon;
             resultsDiv.innerHTML = "";
