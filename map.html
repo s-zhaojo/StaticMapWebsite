@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RECLAIM – World Map</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f8;
+}
+
+h2 {
+    text-align: center;
+    margin: 10px 0;
+    color: #2c3e50;
+}
+
+/* Layout */
+#container {
+    display: flex;
+    height: calc(100vh - 50px);
+}
+
+/* Sidebar */
+#sidebar {
+    width: 360px;
+    overflow-y: auto;
+    background: #ffffff;
+    padding: 15px;
+    border-right: 1px solid #ddd;
+}
+
+#sidebar h3 {
+    margin-top: 15px;
+    font-size: 16px;
+    color: #34495e;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+input, select {
+    padding: 8px;
+    margin-top: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+input[type=number] {
+    width: 50%;
+}
+
+.required::after {
+    content: " *";
+    color: red;
+}
+
+/* Slider container */
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.slider-container label {
+    min-width: 80px;
+}
+
+.slider-container input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+}
+
+.slider-container input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    border: none;
+}
+
+.slider-container input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    border: none;
+}
+
+/* Map */
+#map {
+    flex: 1;
+}
+
+/* Search */
+#search {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+#results {
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    margin-top: 2px;
+}
+
+.result-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.result-item:hover {
+    background: #3498db;
+    color: white;
+}
+
+/* Submit Button */
+#submit-btn {
+    width: 100%;
+    background-color: #27ae60;
+    color: white;
+    font-size: 16px;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+#submit-btn.enabled {
+    opacity: 1;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>RECLAIM – Global Reservoir Tool 🌍</h2>
+
+<div id="container">
+
+<div id="sidebar">
+
+<h3>Search Reservoir / Major River Basin (I4)</h3>
+<input id="search" type="text" placeholder="Search reservoir or basin..." required>
+<div id="results"></div>
+
+<h3>Observation Period</h3>
+<div class="slider-container">
+    <label>Start Year (I1, year)</label>
+    <input type="range" id="start-year-slider" min="1900" max="2025" value="2000">
+    <input type="number" id="start-year-input" min="1900" max="2025" value="2000">
+</div>
+<div class="slider-container">
+    <label>End Year (I2, year)</label>
+    <input type="range" id="end-year-slider" min="1900" max="2025" value="2020">
+    <input type="number" id="end-year-input" min="1900" max="2025" value="2020">
+</div>
+
+<h3>Build Year</h3>
+<div class="slider-container">
+    <label>Build Year (I3, year)</label>
+    <input type="range" id="build-year-slider" min="1900" max="2025" value="2010">
+    <input type="number" id="build-year-input" min="1900" max="2025" value="2010">
+</div>
+
+<h3>Location</h3>
+<label class="required">Dam Latitude (I5, °)</label>
+<input id="lat" type="number" step="any" required>
+
+<label class="required">Dam Longitude (I6, °)</label>
+<input id="lon" type="number" step="any" required>
+
+<h3>Reservoir Properties</h3>
+<label class="required">Original Built Capacity (I7, Mm³)</label>
+<input id="I7" type="number" required>
+
+<label>Dam Height (I8, m)</label>
+<input type="number">
+
+<label>Bathymetry / AEC Curve (I9, depth–area–capacity)</label>
+<input type="file" accept=".csv">
+
+<label class="required">Reservoir Geometry (I10, polygon)</label>
+<input id="I10" type="file" accept=".geojson,.zip" required>
+
+<h3>Catchment</h3>
+<label>Differential Catchment Area (I11, km²)</label>
+<input type="number">
+
+<label class="required">Catchment Geometry (I12, polygon)</label>
+<input id="I12" type="file" accept=".geojson,.zip" required>
+
+<h3>Time Series Inputs (Optional)</h3>
+<label>Inflow (I13, m³/s)</label>
+<input type="file" accept=".csv">
+
+<label>Outflow (I14, m³/s)</label>
+<input type="file" accept=".csv">
+
+<label>Surface Area (I15, km²)</label>
+<input type="file" accept=".csv">
+
+<label>Evaporation (I16, mm/day)</label>
+<input type="file" accept=".csv">
+
+<label>NSSC1 (I17, mg/L)</label>
+<input type="file" accept=".csv">
+
+<label>NSSC2 (I18, mg/L)</label>
+<input type="file" accept=".csv">
+
+<h3>Meteorology (Optional)</h3>
+<label>Precipitation (I19, mm/day)</label>
+<input type="file" accept=".csv">
+
+<label>Temperature Min/Max (I20, °C)</label>
+<input type="file" accept=".csv">
+
+<label>Wind Speed (I21, m/s)</label>
+<input type="file" accept=".csv">
+
+<!-- Submit Button -->
+<button id="submit-btn" disabled>Submit Reservoir Data</button>
+
+</div>
+
+<div id="map"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Map setup
+const map = L.map('map').setView([20, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+let marker;
+
+// Map click to set lat/lon
+map.on('click', e => {
+    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+    document.getElementById("lon").value = e.latlng.lng.toFixed(6);
+    if (marker) map.removeLayer(marker);
+    marker = L.marker(e.latlng).addTo(map);
+    checkFormCompletion();
+});
+
+// Search autocomplete (I4) without auto-zoom
+let selectedReservoir = null;
+const searchInput = document.getElementById("search");
+const resultsDiv = document.getElementById("results");
+searchInput.addEventListener("input", async () => {
+    const q = searchInput.value.trim();
+    resultsDiv.innerHTML = "";
+    if (q.length < 2) return;
+    const res = await fetch(`/api/reservoirs/?q=${q}`);
+    const data = await res.json();
+    data.forEach(r => {
+        const d = document.createElement("div");
+        d.className = "result-item";
+        d.textContent = r.name;
+        d.onclick = () => {
+            selectedReservoir = r;             // store clicked reservoir
+            searchInput.value = r.name;        // fill search bar
+            document.getElementById("lat").value = r.lat;
+            document.getElementById("lon").value = r.lon;
+            resultsDiv.innerHTML = "";         // clear suggestions
+            checkFormCompletion();
+        };
+        resultsDiv.appendChild(d);
+    });
+});
+
+// Slider linking
+function linkSliderAndInput(slider, input) {
+    slider.addEventListener('input', () => {
+        input.value = slider.value;
+        adjustYears(slider.id);
+        checkFormCompletion();
+    });
+    input.addEventListener('input', () => {
+        slider.value = input.value;
+        adjustYears(slider.id);
+        checkFormCompletion();
+    });
+}
+
+linkSliderAndInput(document.getElementById('start-year-slider'), document.getElementById('start-year-input'));
+linkSliderAndInput(document.getElementById('end-year-slider'), document.getElementById('end-year-input'));
+linkSliderAndInput(document.getElementById('build-year-slider'), document.getElementById('build-year-input'));
+
+const startSlider = document.getElementById('start-year-slider');
+const endSlider = document.getElementById('end-year-slider');
+const buildSlider = document.getElementById('build-year-slider');
+
+function adjustYears(changedId) {
+    let build = parseInt(buildSlider.value);
+    let start = parseInt(startSlider.value);
+    let end = parseInt(endSlider.value);
+
+    if (changedId === 'build-year-slider' || changedId === 'build-year-input') {
+        if (start < build) { start = build; startSlider.value = start; document.getElementById('start-year-input').value = start; }
+        if (end < build) { end = build; endSlider.value = end; document.getElementById('end-year-input').value = end; }
+    } else if (changedId === 'start-year-slider' || changedId === 'start-year-input') {
+        if (start < build) { build = start; buildSlider.value = build; document.getElementById('build-year-input').value = build; }
+        if (start > end) { end = start; endSlider.value = end; document.getElementById('end-year-input').value = end; }
+    } else if (changedId === 'end-year-slider' || changedId === 'end-year-input') {
+        if (end < build) { build = end; buildSlider.value = build; document.getElementById('build-year-input').value = build; }
+        if (end < start) { start = end; startSlider.value = start; document.getElementById('start-year-input').value = start; }
+    }
+}
+
+// Submit button logic
+const submitBtn = document.getElementById("submit-btn");
+const requiredFields = ['start-year-input','end-year-input','build-year-input','search','lat','lon','I7','I10','I12'];
+
+function checkFormCompletion() {
+    let enabled = true;
+    requiredFields.forEach(id => {
+        const el = document.getElementById(id);
+        if(!el) enabled = false;
+        else if(el.type === 'file') {
+            if(!el.files || el.files.length === 0) enabled = false;
+        } else if(el.type === 'text' || el.type === 'number') {
+            if(!el.value) enabled = false;
+        }
+    });
+
+    if(enabled){
+        submitBtn.disabled = false;
+        submitBtn.classList.add("enabled");
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove("enabled");
+    }
+}
+
+// Add event listeners to required fields
+requiredFields.forEach(id => {
+    const el = document.getElementById(id);
+    if(el){
+        if(el.type === 'file'){
+            el.addEventListener('change', checkFormCompletion);
+        } else {
+            el.addEventListener('input', checkFormCompletion);
+        }
+    }
+});
+
+// Submit button click: zoom to selected reservoir if any
+submitBtn.addEventListener('click', () => {
+    if(selectedReservoir){
+        map.setView([selectedReservoir.lat, selectedReservoir.lon], 11);
+        if(marker) map.removeLayer(marker);
+        marker = L.marker([selectedReservoir.lat, selectedReservoir.lon]).addTo(map);
+    }
+    submitBtn.disabled = true;
+    submitBtn.classList.remove("enabled");
+    alert("Reservoir data submitted!"); // placeholder
+});
+</script>
+
+</body>
+</html>
