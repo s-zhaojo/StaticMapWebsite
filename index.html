@@ -270,26 +270,32 @@ map.on('click', e => {
     checkFormCompletion();
 });
 
-// Search autocomplete (I4) without auto-zoom
+// Load reservoirs.json statically
+let reservoirs = [];
+fetch('reservoirs.json')
+    .then(res => res.json())
+    .then(data => reservoirs = data)
+    .catch(err => console.error("Failed to load reservoirs.json:", err));
+
+// Search autocomplete using static JSON
 let selectedReservoir = null;
 const searchInput = document.getElementById("search");
 const resultsDiv = document.getElementById("results");
-searchInput.addEventListener("input", async () => {
-    const q = searchInput.value.trim();
+searchInput.addEventListener("input", () => {
+    const q = searchInput.value.trim().toLowerCase();
     resultsDiv.innerHTML = "";
     if (q.length < 2) return;
-    const res = await fetch(`/api/reservoirs/?q=${q}`);
-    const data = await res.json();
-    data.forEach(r => {
+    const filtered = reservoirs.filter(r => r.name.toLowerCase().includes(q));
+    filtered.forEach(r => {
         const d = document.createElement("div");
         d.className = "result-item";
         d.textContent = r.name;
         d.onclick = () => {
-            selectedReservoir = r;             // store clicked reservoir
+            selectedReservoir = r;
             searchInput.value = r.name;        // fill search bar
             document.getElementById("lat").value = r.lat;
             document.getElementById("lon").value = r.lon;
-            resultsDiv.innerHTML = "";         // clear suggestions
+            resultsDiv.innerHTML = "";
             checkFormCompletion();
         };
         resultsDiv.appendChild(d);
