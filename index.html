@@ -165,7 +165,7 @@ input[type=number] {
 
 <div id="sidebar">
 
-<h3 class="required">Search Reservoir / Major River Basin (I4)</h3>
+<h3>Search Reservoir / Major River Basin (I4) <span style="color:red">*</span></h3>
 <input id="search" type="text" placeholder="Search reservoir or basin..." required>
 <div id="results"></div>
 
@@ -175,7 +175,6 @@ input[type=number] {
     <input type="range" id="start-year-slider" min="1900" max="2025" value="2000">
     <input type="number" id="start-year-input" min="1900" max="2025" value="2000">
 </div>
-
 <div class="slider-container">
     <label class="required">End Year (I2, year)</label>
     <input type="range" id="end-year-slider" min="1900" max="2025" value="2020">
@@ -246,7 +245,6 @@ meter (mcm))</label>
 <label>Wind Speed (I21, m/s, CSV)</label>
 <input type="file" accept=".csv">
 
-<!-- Submit Button -->
 <button id="submit-btn" disabled>Submit Reservoir Data</button>
 
 </div>
@@ -258,37 +256,28 @@ meter (mcm))</label>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// Map setup
 const map = L.map('map').setView([20, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 let marker;
 
-// Map click to set lat/lon
 map.on('click', e => {
     document.getElementById("lat").value = e.latlng.lat.toFixed(6);
     document.getElementById("lon").value = e.latlng.lng.toFixed(6);
-    if (marker) map.removeLayer(marker);
-    marker = L.marker(e.latlng).addTo(map);
+    if (!marker) marker = L.marker(e.latlng).addTo(map);
+    else marker.setLatLng(e.latlng);
     checkFormCompletion();
 });
 
-// Load reservoirs.json statically
-let reservoirs = [];
-fetch('reservoirs.json')
-    .then(res => res.json())
-    .then(data => reservoirs = data)
-    .catch(err => console.error("Failed to load reservoirs.json:", err));
-
-// Search autocomplete using static JSON
 let selectedReservoir = null;
 const searchInput = document.getElementById("search");
 const resultsDiv = document.getElementById("results");
-searchInput.addEventListener("input", () => {
-    const q = searchInput.value.trim().toLowerCase();
+searchInput.addEventListener("input", async () => {
+    const q = searchInput.value.trim();
     resultsDiv.innerHTML = "";
     if (q.length < 2) return;
-    const filtered = reservoirs.filter(r => r.name.toLowerCase().includes(q));
-    filtered.forEach(r => {
+    const res = await fetch(`/api/reservoirs/?q=${q}`);
+    const data = await res.json();
+    data.forEach(r => {
         const d = document.createElement("div");
         d.className = "result-item";
         d.textContent = r.name;
@@ -297,6 +286,8 @@ searchInput.addEventListener("input", () => {
             searchInput.value = r.name;
             document.getElementById("lat").value = r.lat;
             document.getElementById("lon").value = r.lon;
+            if (!marker) marker = L.marker([r.lat, r.lon]).addTo(map);
+            else marker.setLatLng([r.lat, r.lon]);
             resultsDiv.innerHTML = "";
             checkFormCompletion();
         };
@@ -304,7 +295,6 @@ searchInput.addEventListener("input", () => {
     });
 });
 
-// Slider linking
 function linkSliderAndInput(slider, input) {
     slider.addEventListener('input', () => {
         input.value = slider.value;
@@ -343,7 +333,6 @@ function adjustYears(changedId) {
     }
 }
 
-// Submit button logic
 const submitBtn = document.getElementById("submit-btn");
 const requiredFields = ['start-year-input','end-year-input','build-year-input','search','lat','lon','I7','I10','I12'];
 
@@ -368,7 +357,6 @@ function checkFormCompletion() {
     }
 }
 
-// Add event listeners to required fields
 requiredFields.forEach(id => {
     const el = document.getElementById(id);
     if(el){
@@ -380,16 +368,33 @@ requiredFields.forEach(id => {
     }
 });
 
-// Submit button click: zoom to selected reservoir if any
+document.getElementById("lat").addEventListener("input", () => {
+    const lat = parseFloat(document.getElementById("lat").value);
+    const lon = parseFloat(document.getElementById("lon").value);
+    if(!isNaN(lat) && !isNaN(lon)){
+        if (!marker) marker = L.marker([lat, lon]).addTo(map);
+        else marker.setLatLng([lat, lon]);
+    }
+});
+
+document.getElementById("lon").addEventListener("input", () => {
+    const lat = parseFloat(document.getElementById("lat").value);
+    const lon = parseFloat(document.getElementById("lon").value);
+    if(!isNaN(lat) && !isNaN(lon)){
+        if (!marker) marker = L.marker([lat, lon]).addTo(map);
+        else marker.setLatLng([lat, lon]);
+    }
+});
+
 submitBtn.addEventListener('click', () => {
     if(selectedReservoir){
         map.setView([selectedReservoir.lat, selectedReservoir.lon], 11);
-        if(marker) map.removeLayer(marker);
-        marker = L.marker([selectedReservoir.lat, selectedReservoir.lon]).addTo(map);
+        if (!marker) marker = L.marker([selectedReservoir.lat, selectedReservoir.lon]).addTo(map);
+        else marker.setLatLng([selectedReservoir.lat, selectedReservoir.lon]);
     }
     submitBtn.disabled = true;
     submitBtn.classList.remove("enabled");
-    alert("Reservoir data submitted!"); // placeholder
+    alert("Reservoir data submitted!");
 });
 </script>
 
